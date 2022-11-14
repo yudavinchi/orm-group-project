@@ -32,10 +32,8 @@ public class ExecuteQuery {
 
             String tableName = clz.getSimpleName().toLowerCase();
 
-
-            System.out.println(new Query.Builder().insertInto(tableName).withFields(columns).andValues(values).build().getQuery());
-            System.out.println(String.format("INSERT INTO %s (%s) VALUES (%s);", clz.getSimpleName().toLowerCase(), String.join(",", columns), String.join(",", values)));
-            statement.execute(String.format("INSERT INTO %s (%s) VALUES (%s);", clz.getSimpleName().toLowerCase(), String.join(",", columns), String.join(",", values)));
+            Query query = new Query.Builder().insertInto(tableName).withFields(columns).andValues(values).build();
+            statement.execute(query.getQuery());
 
             ConnectionController.disconnect();
         } catch (SQLException e) {
@@ -176,7 +174,9 @@ public class ExecuteQuery {
         try {
             Statement statement = ConnectionController.connect().createStatement();
 
-            ResultSet rs = statement.executeQuery(String.format("select * from %s", clz.getSimpleName().toLowerCase()));
+            Query query = new Query.Builder().select("*").from(clz.getSimpleName().toLowerCase()).build();
+            ResultSet rs = statement.executeQuery(query.getQuery());
+
             List<T> results = new ArrayList<>();
 
             while (rs.next()) {
@@ -203,7 +203,9 @@ public class ExecuteQuery {
         try {
             Statement statement = ConnectionController.connect().createStatement();
 
-            ResultSet rs = statement.executeQuery(String.format("select * from %s where id = %s", clz.getSimpleName().toLowerCase(), id));
+            Query query = new Query.Builder().select("*").from(clz.getSimpleName().toLowerCase()).where("id", String.valueOf(id)).build();
+            ResultSet rs = statement.executeQuery(query.getQuery());
+
             T result = null;
 
             while (rs.next()) {
@@ -230,7 +232,9 @@ public class ExecuteQuery {
         try {
             Statement statement = ConnectionController.connect().createStatement();
 
-            ResultSet rs = statement.executeQuery(String.format("SELECT * FROM %s WHERE %s='%s';", clz.getSimpleName().toLowerCase(), property, value));
+            Query query = new Query.Builder().select("*").from(clz.getSimpleName().toLowerCase()).where(property, value).build();
+            ResultSet rs = statement.executeQuery(query.getQuery());
+
             List<T> results = new ArrayList<>();
 
             while (rs.next()) {
@@ -262,7 +266,8 @@ public class ExecuteQuery {
             SET column1 = value1, column2 = value2, ...
             WHERE condition;
              */
-            statement.executeUpdate(String.format("UPDATE %s SET %s = '%s' WHERE id='%s';", clz.getSimpleName().toLowerCase(), property, value, id));
+            Query query = new Query.Builder().update(clz.getSimpleName().toLowerCase()).set(property, value).where("id", String.valueOf(id)).build();
+            statement.executeUpdate(query.getQuery());
 
             ConnectionController.disconnect();
 
