@@ -252,5 +252,27 @@ public class ExecuteQuery {
         }
         return null;
     }
+
+    public static <T> void updatePropertyById(int id, String property, String value, Class<T> clz){
+        try {
+            Statement statement = ConnectionController.connect().createStatement();
+
+            /*
+            UPDATE table_name
+            SET column1 = value1, column2 = value2, ...
+            WHERE condition;
+             */
+            statement.executeUpdate(String.format("UPDATE %s SET %s = '%s' WHERE id='%s';", clz.getSimpleName().toLowerCase(), property, value, id));
+
+            ConnectionController.disconnect();
+
+        } catch (Exception e) {
+            System.out.println("general exception " + e);
+        }
+    }
+
+    public static <T> void updateEntireItemById(int id, T item, Class<T> clz){
+
+    }
 }
 
