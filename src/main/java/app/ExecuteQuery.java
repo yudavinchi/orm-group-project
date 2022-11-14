@@ -45,6 +45,12 @@ public class ExecuteQuery {
         }
     }
 
+    public static <T> void addMany(ArrayList<T> items, Class<T> clz) throws FileNotFoundException {
+        for(T item : items){
+            addOne(item, clz);
+        }
+    }
+
 
     ///////////////////////////////////////////////////////////////////////////////// IN PROCESS
     public static <T> void addItem(T item, Class<T> clz) throws FileNotFoundException {
