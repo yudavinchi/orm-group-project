@@ -6,40 +6,13 @@ import com.google.gson.Gson;
 import java.io.FileNotFoundException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.*;
 
 public class ExecuteQuery {
 
     private static final String url = "src/main/java/configurations/sql config.json";
     private static final Connection connection = Connect.to("src/main/java/configurations/sql config.json");
-
-    public static <T> void createTable(Class<T> clz) throws SQLException {
-
-        Statement statement = connection.createStatement();
-
-        List<String> columns = new ArrayList<>();
-        Field[] declaredFields = clz.getDeclaredFields();
-        List<String> declaredTypes = new ArrayList<>();
-
-        for (Field classField : declaredFields) {
-            declaredTypes.add(classField.getType().toString());
-        }
-
-        for (Field field : declaredFields) {
-            columns.add(field.getName());
-            field.setAccessible(true);
-        }
-
-        Map<String, String> map = new HashMap<>();
-
-        map.put("int", "INTEGER");
-        map.put("class java.lang.String", "VARCHAR(255)");
-
-
 
     public static <T> void addOne(T item, Class<T> clz) throws FileNotFoundException {
         try {
@@ -70,7 +43,6 @@ public class ExecuteQuery {
 
 
     ///////////////////////////////////////////////////////////////////////////////// IN PROCESS
-
     public static <T> void addItem(T item, Class<T> clz) throws FileNotFoundException {
         try {
             Connection connection = getConnection();
@@ -100,20 +72,21 @@ public class ExecuteQuery {
     }
 
     //----------------------------------------------------------- SQL CLEAN FUNCTIONS
-    public static <T> void createTable(Class <T> clz) throws SQLException, FileNotFoundException {
+    public static <T> void createTable(Class<T> clz) throws SQLException, FileNotFoundException {
         String str = "";
         Connection connection = getConnection();
         Statement statement = connection.createStatement();
         try {
             Field[] declaredFields = clz.getDeclaredFields();
             for (Field field : declaredFields)
-                str += field.getName() + " " + returnTypeString(field.getType().toString())+ " NOT NULL, ";
+                str += field.getName() + " " + returnTypeString(field.getType().toString()) + " NOT NULL, ";
             str = str.substring(0, str.length() - 2);
-            statement.execute(String.format("CREATE TABLE %s (%s);", clz.getSimpleName().toLowerCase(),str));
+            statement.execute(String.format("CREATE TABLE %s (%s);", clz.getSimpleName().toLowerCase(), str));
         } catch (SQLException e) {
             System.out.println(e);
         }
     }
+
     public static <T> void deleteItem(T item) throws IllegalAccessException, SQLException, FileNotFoundException {
         Connection connection = getConnection();
         String strQuery = "DELETE FROM " + item.getClass().getSimpleName().toLowerCase() + " WHERE ";
@@ -138,10 +111,12 @@ public class ExecuteQuery {
                 configurations.get("password"));
         return connection;
     }
-    private static <T> String objectToJsonString(Object o){
+
+    private static <T> String objectToJsonString(Object o) {
         Gson gson = new Gson();
         return gson.toJson(o);
     }
+
     private static String returnTypeString(String type) {
         switch (type) {
             case "class java.lang.Boolean":
@@ -169,6 +144,7 @@ public class ExecuteQuery {
                 return "TEXT(500)";
         }
     }
+
     private static <T> String returnTypeStringToDel(Field field, T item) throws IllegalAccessException {
         String stringType = returnTypeString(field.getType().toString());
         switch (stringType) {
@@ -184,6 +160,7 @@ public class ExecuteQuery {
                 return field.getName() + " = '" + field.get(item) + "'" + " AND ";
         }
     }
+
     public static <T> List<T> readAll(Class<T> clz) {
         try {
             Statement statement = connection.createStatement();
@@ -211,7 +188,7 @@ public class ExecuteQuery {
         return null;
     }
 
-    public static <T> T readById(int id,Class<T> clz) {
+    public static <T> T readById(int id, Class<T> clz) {
         try {
             Statement statement = connection.createStatement();
 
@@ -238,3 +215,4 @@ public class ExecuteQuery {
         return null;
     }
 }
+

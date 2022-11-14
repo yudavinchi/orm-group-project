@@ -17,7 +17,7 @@ public class TypeCheckClass {
     LocalDateTime BirthDay;     //DATETIME
     char ch;                    //VARCHAR(1)
     Type type;                  // VARCHAR(50) --- enum
-    Dog dog;
+//    Dog dog;
 
 // other to Json to LONGTEXT;
 
@@ -26,7 +26,7 @@ public class TypeCheckClass {
         BLUE, RED, GREEN;
     }
 
-    public TypeCheckClass(Boolean myBoolean, Byte myByte, Short myShort, int myInt, String myString, long mylong, float myFloat, double myDouble, Date myDate, LocalDateTime birthDay, char ch, Type type, Dog dog) {
+    public TypeCheckClass(Boolean myBoolean, Byte myByte, Short myShort, int myInt, String myString, long mylong, float myFloat, double myDouble, Date myDate, LocalDateTime birthDay, char ch, Type type) {
         this.myBoolean = myBoolean;
         this.myByte = myByte;
         this.myShort = myShort;
@@ -39,7 +39,7 @@ public class TypeCheckClass {
         BirthDay = birthDay;
         this.ch = ch;
         this.type = type;
-        this.dog = dog;
+ //       this.dog = dog;
     }
 
 
@@ -58,7 +58,7 @@ public class TypeCheckClass {
                 ", BirthDay=" + BirthDay +
                 ", ch=" + ch +
                 ", type=" + type +
-                ", dog=" + dog +
+ //               ", dog=" + dog +
                 '}';
     }
 
@@ -158,11 +158,11 @@ public class TypeCheckClass {
         this.type = type;
     }
 
-    public Dog getDog() {
-        return dog;
-    }
+//    public Dog getDog() {
+//        return dog;
+//    }
 
-    public void setDog(Dog dog) {
-        this.dog = dog;
-    }
+//    public void setDog(Dog dog) {
+//        this.dog = dog;
+//    }
 }
