@@ -1,6 +1,7 @@
 package app;
 
 import app.utils.File;
+import com.google.gson.Gson;
 
 import java.io.FileNotFoundException;
 import java.lang.reflect.Field;
@@ -15,44 +16,7 @@ import java.util.Map;
 
 public class ExecuteQuery {
 
-    public static <T> void createTable(Class<T> clz) throws FileNotFoundException, SQLException {
-        HashMap<String, String> configurations = File.readJson("src/main/java/configurations/sql config.json");
 
-        Connection connection = DriverManager.getConnection(
-                configurations.get("url"),
-                configurations.get("user"),
-                configurations.get("password"));
-
-        Statement statement = connection.createStatement();
-        List<String> columns = new ArrayList<>();
-        Field[] declaredFields = clz.getDeclaredFields();
-        List<String> declaredTypes = new ArrayList<>();
-
-        for (Field classField : declaredFields) {
-            declaredTypes.add(classField.getType().toString());
-        }
-
-        for (Field field : declaredFields) {
-            columns.add(field.getName());
-            field.setAccessible(true);
-        }
-
-        Map<String, String> map = new HashMap<>();
-
-        map.put("int", "INTEGER");
-        map.put("class java.lang.String", "VARCHAR(255)");
-
-        StringBuilder temp = new StringBuilder();
-
-        for (int i = 0; i < columns.size(); i++) {
-            if (i != columns.size() - 1) {
-                temp.append(declaredFields[i].getName()).append(" ").append(map.get(declaredTypes.get(i))).append(", ");
-            } else {
-                temp.append(declaredFields[i].getName()).append(" ").append(map.get(declaredTypes.get(i)));
-            }
-        }
-        statement.execute(String.format("CREATE TABLE %s (%s);", clz.getSimpleName().toLowerCase(), temp));
-    }
 
     public static <T> void addOne(T item, Class<T> clz) throws FileNotFoundException {
         try {
@@ -88,4 +52,122 @@ public class ExecuteQuery {
             throw new RuntimeException(e);
         }
     }
+
+
+    ///////////////////////////////////////////////////////////////////////////////// IN PROCESS
+
+    public static <T> void addItem(T item, Class<T> clz) throws FileNotFoundException {
+        try {
+            Connection connection = getConnection();
+            Statement statement = connection.createStatement();
+
+            List<String> columns = new ArrayList<>();
+            List<String> values = new ArrayList<>();
+            Field[] declaredFields = clz.getDeclaredFields();
+
+            for (Field field : declaredFields
+            ) {
+                columns.add(field.getName());
+                field.setAccessible(true);
+                values.add("'" + field.get(item.toString()) + "'");
+            }
+            System.out.println("col: " + columns);
+            System.out.println("values: " + values);
+            System.out.println(String.format("INSERT INTO %s (%s) VALUES (%s);", clz.getSimpleName().toLowerCase(), String.join(",", columns), String.join(",", values)));
+            statement.execute(String.format("INSERT INTO %s (%s) VALUES (%s);", clz.getSimpleName().toLowerCase(), String.join(",", columns), String.join(",", values)));
+        } catch (SQLException e) {
+            System.out.println(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    //----------------------------------------------------------- SQL CLEAN FUNCTIONS
+    public static <T> void createTable(Class <T> clz) throws SQLException, FileNotFoundException {
+        String str = "";
+        Connection connection = getConnection();
+        Statement statement = connection.createStatement();
+        try {
+            Field[] declaredFields = clz.getDeclaredFields();
+            for (Field field : declaredFields)
+                str += field.getName() + " " + returnTypeString(field.getType().toString())+ " NOT NULL, ";
+            str = str.substring(0, str.length() - 2);
+            statement.execute(String.format("CREATE TABLE %s (%s);", clz.getSimpleName().toLowerCase(),str));
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
+    }
+    public static <T> void deleteItem(T item) throws IllegalAccessException, SQLException, FileNotFoundException {
+        Connection connection = getConnection();
+        String strQuery = "DELETE FROM " + item.getClass().getSimpleName().toLowerCase() + " WHERE ";
+        Field[] declaredFields = item.getClass().getDeclaredFields();
+        for (Field field : declaredFields)
+            strQuery += returnTypeStringToDel(field, item);
+        strQuery = strQuery.substring(0, strQuery.length() - 5);
+        strQuery += ";";
+        Statement statement = connection.createStatement();
+        statement.execute(strQuery);
+        connection.close();
+    }
+
+    //----------------------------------------------------------- HELP FUNCTIONS
+
+    private static Connection getConnection() throws SQLException, FileNotFoundException {
+        HashMap<String, String> configurations = File.readJson("src/main/java/configurations/sql config.json");
+
+        Connection connection = DriverManager.getConnection(
+                configurations.get("url"),
+                configurations.get("user"),
+                configurations.get("password"));
+        return connection;
+    }
+    private static <T> String objectToJsonString(Object o){
+        Gson gson = new Gson();
+        return gson.toJson(o);
+    }
+    private static String returnTypeString(String type) {
+        switch (type) {
+            case "class java.lang.Boolean":
+                return "BIT(1)";
+            case "class java.lang.Byte":
+                return "BINARY";
+            case "class java.lang.Short":
+                return "SMALLINT";
+            case "int":
+                return "INTEGER";
+            case "class java.lang.String":
+                return "VARCHAR(256)";
+            case "long":
+                return "BIGINT";
+            case "float":
+                return "FLOAT";
+            case "double":
+                return "DOUBLE";
+            case "class java.util.Date":
+            case "class java.time.LocalDateTime":
+                return "DATETIME";
+            case "char":
+                return "VARCHAR(1)";
+            default:
+                return "TEXT(500)";
+        }
+    }
+    private static <T> String returnTypeStringToDel(Field field, T item) throws IllegalAccessException {
+        String stringType = returnTypeString(field.getType().toString());
+        switch (stringType) {
+            case "BIT(1)":
+            case "BINARY":
+            case "SMALLINT":
+            case "INTEGER":
+            case "BIGINT":
+            case "DOUBLE":
+            case "FLOAT":
+                return field.getName() + " = " + field.get(item) + " AND ";
+            default:
+                return field.getName() + " = '" + field.get(item) + "'" + " AND ";
+        }
+    }
+
 }
