@@ -33,7 +33,7 @@ public class ExecuteQuery {
             String tableName = clz.getSimpleName().toLowerCase();
 
 
-            System.out.println(String.format(new Query.Builder().insertInto(tableName).withFields(columns).andValues(values).build().getQuery()));
+            System.out.println(new Query.Builder().insertInto(tableName).withFields(columns).andValues(values).build().getQuery());
             System.out.println(String.format("INSERT INTO %s (%s) VALUES (%s);", clz.getSimpleName().toLowerCase(), String.join(",", columns), String.join(",", values)));
             statement.execute(String.format("INSERT INTO %s (%s) VALUES (%s);", clz.getSimpleName().toLowerCase(), String.join(",", columns), String.join(",", values)));
 
@@ -213,6 +213,33 @@ public class ExecuteQuery {
             }
             ConnectionController.disconnect();
             return result;
+
+        } catch (Exception e) {
+            System.out.println("general exception " + e);
+        }
+        return null;
+    }
+
+    public static <T> List<T> readByProperty(String property, String value, Class<T> clz) {
+        try {
+            Statement statement = ConnectionController.connect().createStatement();
+
+            ResultSet rs = statement.executeQuery(String.format("SELECT * FROM %s WHERE %s='%s';", clz.getSimpleName().toLowerCase(), property, value));
+            List<T> results = new ArrayList<>();
+
+            while (rs.next()) {
+                Constructor<T> constructor = clz.getConstructor();
+                T item = (T) constructor.newInstance();
+                Field[] declaredFields = clz.getDeclaredFields();
+
+                for (Field field : declaredFields) {
+                    field.setAccessible(true);
+                    field.set(item, rs.getObject(field.getName()));
+                }
+                results.add(item);
+            }
+            ConnectionController.disconnect();
+            return results;
 
         } catch (Exception e) {
             System.out.println("general exception " + e);

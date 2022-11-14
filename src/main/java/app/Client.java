@@ -9,17 +9,10 @@ import java.util.*;
 public class Client {
     public static void main(String args[]) throws Exception {
 
-        HashMap<String, String> configurations = File.readJson("src/main/java/configurations/sql config.json");
+        List<Vehicle> vehicles = ExecuteQuery.readByProperty("company", "abcde", Vehicle.class);
 
-        User user = new User(123, "David", "Yudin");
-        Vehicle vehicle = new Vehicle("ABCD", "ZXCV", 2, 2021, "good car");
-
-        ExecuteQuery.addOne(vehicle, Vehicle.class);
-
-        List<Vehicle> vehicles = ExecuteQuery.readAll(Vehicle.class);
-        vehicles.forEach(vehiclez -> System.out.println(vehiclez.toString()));
-
-        Vehicle vehicless = ExecuteQuery.readById(1, Vehicle.class);
-        System.out.println(vehicless.toString());
+        for (Vehicle vehicle: vehicles){
+            System.out.println(vehicle.toString());
+        }
     }
 }
