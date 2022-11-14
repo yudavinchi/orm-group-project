@@ -6,15 +6,20 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.HashMap;
+import java.util.Map;
 
 public class File {
 
-    public static HashMap<String, String> readJson (String path) throws FileNotFoundException {
+    public static HashMap<String, String> readJson(String path) {
 
-        BufferedReader bufferedReader = new BufferedReader(new FileReader(path));
+        BufferedReader bufferedReader = null;
+        try {
+            bufferedReader = new BufferedReader(new FileReader(path));
+        } catch (FileNotFoundException fileNotFoundException) {
+            System.out.println(fileNotFoundException);
+        }
 
         Gson gson = new Gson();
-        HashMap<String, String> json = gson.fromJson(bufferedReader, HashMap.class);
-        return json;
+        return gson.fromJson(bufferedReader, HashMap.class);
     }
 }

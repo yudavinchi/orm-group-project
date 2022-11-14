@@ -1,6 +1,7 @@
 package app;
 
 import app.utils.File;
+import app.utils.Query;
 import com.google.gson.Gson;
 
 import java.io.FileNotFoundException;
@@ -12,12 +13,11 @@ import java.util.*;
 public class ExecuteQuery {
 
     private static final String url = "src/main/java/configurations/sql config.json";
-    private static final Connection connection = Connect.to("src/main/java/configurations/sql config.json");
 
     public static <T> void addOne(T item, Class<T> clz) throws FileNotFoundException {
         try {
 
-            Statement statement = connection.createStatement();
+            Statement statement = ConnectionController.connect().createStatement();
 
             List<String> columns = new ArrayList<>();
             List<String> values = new ArrayList<>();
@@ -30,10 +30,14 @@ public class ExecuteQuery {
                 values.add("'" + field.get(item) + "'");
             }
 
-            System.out.println("col: " + columns);
-            System.out.println("values: " + values);
+            String tableName = clz.getSimpleName().toLowerCase();
+
+
+            System.out.println(String.format(new Query.Builder().insertInto(tableName).withFields(columns).andValues(values).build().getQuery()));
             System.out.println(String.format("INSERT INTO %s (%s) VALUES (%s);", clz.getSimpleName().toLowerCase(), String.join(",", columns), String.join(",", values)));
             statement.execute(String.format("INSERT INTO %s (%s) VALUES (%s);", clz.getSimpleName().toLowerCase(), String.join(",", columns), String.join(",", values)));
+
+            ConnectionController.disconnect();
         } catch (SQLException e) {
             System.out.println(e);
         } catch (IllegalAccessException e) {
@@ -81,6 +85,7 @@ public class ExecuteQuery {
             for (Field field : declaredFields)
                 str += field.getName() + " " + returnTypeString(field.getType().toString()) + " NOT NULL, ";
             str = str.substring(0, str.length() - 2);
+
             statement.execute(String.format("CREATE TABLE %s (%s);", clz.getSimpleName().toLowerCase(), str));
         } catch (SQLException e) {
             System.out.println(e);
@@ -163,7 +168,7 @@ public class ExecuteQuery {
 
     public static <T> List<T> readAll(Class<T> clz) {
         try {
-            Statement statement = connection.createStatement();
+            Statement statement = ConnectionController.connect().createStatement();
 
             ResultSet rs = statement.executeQuery(String.format("select * from %s", clz.getSimpleName().toLowerCase()));
             List<T> results = new ArrayList<>();
@@ -179,7 +184,7 @@ public class ExecuteQuery {
                 }
                 results.add(item);
             }
-            connection.close();
+            ConnectionController.disconnect();
             return results;
 
         } catch (Exception e) {
@@ -190,7 +195,7 @@ public class ExecuteQuery {
 
     public static <T> T readById(int id, Class<T> clz) {
         try {
-            Statement statement = connection.createStatement();
+            Statement statement = ConnectionController.connect().createStatement();
 
             ResultSet rs = statement.executeQuery(String.format("select * from %s where id = %s", clz.getSimpleName().toLowerCase(), id));
             T result = null;
@@ -206,7 +211,7 @@ public class ExecuteQuery {
                 }
                 result = item;
             }
-            connection.close();
+            ConnectionController.disconnect();
             return result;
 
         } catch (Exception e) {
