@@ -1,29 +1,23 @@
 package app;
 
-import app.utils.File;
-
 import java.io.FileNotFoundException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.sql.Connection;
-import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ExecuteQuery {
 
-    public static <T> void createTable(Class<T> clz) throws FileNotFoundException, SQLException {
-        HashMap<String, String> configurations = File.readJson("src/main/java/configurations/sql config.json");
+    private static final String url = "src/main/java/configurations/sql config.json";
+    private static final Connection connection = Connect.to("src/main/java/configurations/sql config.json");
 
-        Connection connection = DriverManager.getConnection(
-                configurations.get("url"),
-                configurations.get("user"),
-                configurations.get("password"));
+    public static <T> void createTable(Class<T> clz) throws SQLException {
 
         Statement statement = connection.createStatement();
+
         List<String> columns = new ArrayList<>();
         Field[] declaredFields = clz.getDeclaredFields();
         List<String> declaredTypes = new ArrayList<>();
@@ -54,17 +48,12 @@ public class ExecuteQuery {
         statement.execute(String.format("CREATE TABLE %s (%s);", clz.getSimpleName().toLowerCase(), temp));
     }
 
+
     public static <T> void addOne(T item, Class<T> clz) throws FileNotFoundException {
         try {
 
-            HashMap<String, String> configurations = File.readJson("src/main/java/configurations/sql config.json");
-
-            Connection connection = DriverManager.getConnection(
-                    configurations.get("url"),
-                    configurations.get("user"),
-                    configurations.get("password"));
-
             Statement statement = connection.createStatement();
+
             List<String> columns = new ArrayList<>();
             List<String> values = new ArrayList<>();
             Field[] declaredFields = clz.getDeclaredFields();
@@ -84,8 +73,60 @@ public class ExecuteQuery {
             System.out.println(e);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
         }
+    }
+
+    public static <T> List<T> readAll(Class<T> clz) {
+        try {
+            Statement statement = connection.createStatement();
+
+            ResultSet rs = statement.executeQuery(String.format("select * from %s", clz.getSimpleName().toLowerCase()));
+            List<T> results = new ArrayList<>();
+
+            while (rs.next()) {
+                Constructor<T> constructor = clz.getConstructor();
+                T item = (T) constructor.newInstance();
+                Field[] declaredFields = clz.getDeclaredFields();
+
+                for (Field field : declaredFields) {
+                    field.setAccessible(true);
+                    field.set(item, rs.getObject(field.getName()));
+                }
+                results.add(item);
+            }
+            connection.close();
+            return results;
+
+        } catch (Exception e) {
+            System.out.println("general exception " + e);
+        }
+        return null;
+    }
+
+    public static <T> T readById(int id,Class<T> clz) {
+        try {
+            Statement statement = connection.createStatement();
+
+            ResultSet rs = statement.executeQuery(String.format("select * from %s where id = %s", clz.getSimpleName().toLowerCase(), id));
+            T result = null;
+
+            while (rs.next()) {
+                Constructor<T> constructor = clz.getConstructor();
+                T item = (T) constructor.newInstance();
+                Field[] declaredFields = clz.getDeclaredFields();
+
+                for (Field field : declaredFields) {
+                    field.setAccessible(true);
+                    field.set(item, rs.getObject(field.getName()));
+                }
+                result = item;
+            }
+            connection.close();
+            return result;
+
+        } catch (Exception e) {
+            System.out.println("general exception " + e);
+        }
+        return null;
     }
 }
