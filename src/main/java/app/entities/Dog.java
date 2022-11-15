@@ -1,10 +1,14 @@
 package app.entities;
 
+import org.jetbrains.annotations.NotNull;
+
 public class Dog {
-    int id;
-    int age;
-    String name;
-    String type;
+
+    @UniqueValue
+    private int id;
+    private int age;
+    private String name;
+    private String type;
 
     public Dog(int id, int age, String name, String type) {
         this.id = id;
