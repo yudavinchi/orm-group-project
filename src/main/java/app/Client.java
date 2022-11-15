@@ -3,11 +3,6 @@ package app;
 import app.entities.Cat;
 import app.entities.Dog;
 import app.entities.Student;
-import app.utils.JdbcAutoGenKey;
-
-import java.sql.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class Client {
     public static void main(String args[]) throws Exception {
