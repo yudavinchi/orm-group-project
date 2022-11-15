@@ -15,7 +15,6 @@ public class Client {
 
 //-----------------------------------------------------------------
 
-
         ExecuteQuery.deleteTable(Student.class);
         ExecuteQuery.createTableWithAnnotations(Student.class);
 
@@ -23,9 +22,20 @@ public class Client {
         Student student2 = new Student("Oleg");
         Student student3 = new Student("Ben");
 
+        System.out.println("==================================================");
+
+        System.out.println(student1);
+        System.out.println(student2);
+        System.out.println(student3);
         ExecuteQuery.addItemWithAnnotations(student1);
         ExecuteQuery.addItemWithAnnotations(student2);
         ExecuteQuery.addItemWithAnnotations(student3);
+
+
+        System.out.println("==================================================");
+        System.out.println(student1);
+        System.out.println(student2);
+        System.out.println(student3);
 
 
         ExecuteQuery.deleteTable(Dog.class);
@@ -37,7 +47,7 @@ public class Client {
 //
         ExecuteQuery.addItemWithAnnotations(dog1);
         ExecuteQuery.addItemWithAnnotations(dog2);
-////        ExecuteQuery.addItemWithAnnotations(dog3);
+//        ExecuteQuery.addItemWithAnnotations(dog3);
         dog3.setId(3);
         ExecuteQuery.addItemWithAnnotations(dog3);
 

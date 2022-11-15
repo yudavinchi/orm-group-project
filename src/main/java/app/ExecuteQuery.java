@@ -177,7 +177,7 @@ public class ExecuteQuery {
         return null;
     }
 
-    public static <T> T readById(long id, Class<T> clz) {
+    public static <T> T readById(int id, Class<T> clz) {
         try {
             Statement statement = ConnectionController.connect().createStatement();
 
@@ -324,13 +324,8 @@ public class ExecuteQuery {
     public static <T> void addItemWithAnnotations(T item) throws SQLException, IllegalAccessException {
         Statement statement = ConnectionController.connect().createStatement();
         String addItemQuery = addItemQueryBuilderWithAnnotations(item);
-        System.out.println("327 ----- "+addItemQuery);
-//        ResultSet rs = statement.executeQuery("SELECT LAST_INSERT_ID();");
-//        int val = ((Number) rs.getObject(1)).intValue();
         statement.execute(addItemQuery);
         ConnectionController.disconnect();
-//        updateIdForAutoIncrementedId(val, item.getClass());
-
     }
 
 
@@ -341,19 +336,19 @@ public class ExecuteQuery {
         Field[] declaredFields = item.getClass().getDeclaredFields();
         for (Field field : declaredFields
         ) {
-            System.out.println("344 ----- " + field.getName() + " item: " + item);
-            if (field.isAnnotationPresent(AutoIncrementedId.class) == true) {
-                System.out.println("356 ------  AutoIncrementedId.class in " + item + field.getName());
+            field.setAccessible(true);
+            if (field.isAnnotationPresent(AutoIncrementedId.class)) {
+                columns.add("id");
                 neeToUpdateObjectId = true;
-                columns.add(field.getName());
-                field.setAccessible(true);
-                if (needToConvertToJson(returnValueTypeString(field.getType().toString()))) {
-                    values.add("'" + objectToJsonString(field.get(item)) + "'");
-                } else {
-                    values.add("'" + field.get(item) + "'");
-                }
             }
-
+            else{
+                columns.add(field.getName());
+            }
+            if (needToConvertToJson(returnValueTypeString(field.getType().toString()))) {
+                values.add("'" + objectToJsonString(field.get(item)) + "'");
+            } else {
+                values.add("'" + field.get(item) + "'");
+            }
         }
         String query = String.format("INSERT INTO %s (%s) VALUES (%s);", item.getClass().getSimpleName().toLowerCase(), String.join(",", columns), String.join(",", values));
         ;
@@ -365,19 +360,15 @@ public class ExecuteQuery {
 
     private static <T> void insertIdToItmed(T item, String query) throws SQLException, IllegalAccessException {
         Statement statement = ConnectionController.connect().prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
-        statement.execute(query);
-        ResultSet rs = statement.executeQuery("SELECT LAST_INSERT_ID();");
+        ResultSet rs = statement.executeQuery("SELECT MAX(id) FROM " + item.getClass().getSimpleName().toLowerCase() +";");
         if (rs.next()) {
             long id = rs.getLong(1);
-            System.out.println("382----- Inserted ID: " + id + " for item: "+ item); // display inserted record
             Field[] declaredFields = item.getClass().getDeclaredFields();
             for (Field field : declaredFields
             ) {
                 if (field.isAnnotationPresent(AutoIncrementedId.class)) {
-                    System.out.println("387 ----- set this filed " + field.getName());
                     field.setAccessible(true);
-                    field.set(item, id);
-                    System.out.println("389----- updated item: "+item);
+                    field.set(item, id+1);
                 }
 
             }
