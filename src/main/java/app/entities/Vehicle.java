@@ -22,6 +22,14 @@ public class Vehicle {
         System.out.println(company);
     }
 
+    public void setYear(int year) {
+        this.year = year;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
+    }
+
     @Override
     public String toString() {
         return "Vehicle{" +
