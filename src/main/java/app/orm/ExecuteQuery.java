@@ -2,15 +2,14 @@ package app.orm;
 
 import app.orm.annotations.AutoIncrementedId;
 import app.orm.annotations.UniqueValue;
-import app.orm.entities.Cat;
-import app.orm.entities.Dog;
-import app.orm.entities.Student;
-import app.orm.utils.TypeConverter;
-import com.google.gson.Gson;
 import org.jetbrains.annotations.NotNull;
 
-import javax.management.InvalidAttributeValueException;
 import javax.persistence.Id;
+
+import app.orm.utils.TypeConverter;
+import com.google.gson.Gson;
+
+import javax.management.InvalidAttributeValueException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -21,6 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 class ExecuteQuery {
+
+    private static final TypeConverter typeConverter = TypeConverter.getInstance();
 
     //========================== CREATE ==========================
     public static <T> void createTable(Class<T> clz) {
@@ -178,43 +179,6 @@ class ExecuteQuery {
         }
     }
 
-
-//    //--------------------------------------------------------------- QUERY STRING BUILDERS
-//    private static <T> String addItemQueryBuilder(T item) throws IllegalAccessException {
-//        List<String> columns = new ArrayList<>();
-//        List<String> values = new ArrayList<>();
-//        Field[] declaredFields = item.getClass().getDeclaredFields();
-//        for (Field field : declaredFields) {
-//            columns.add(field.getName());
-//            field.setAccessible(true);
-//            if (needToConvertToJson(TypeConverter.getType(field.getType().toString()))) {
-//                values.add("'" + objectToJsonString(field.get(item)) + "'");
-//            } else {
-//                values.add("'" + field.get(item) + "'");
-//            }
-//        }
-//        return String.format("INSERT INTO %s (%s) VALUES (%s);", item.getClass().getSimpleName().toLowerCase(), String.join(",", columns), String.join(",", values));
-//    }
-
-
-//    private static <T> String createTableQueryBuilder(Class<T> clz) throws IllegalAccessException {
-//        String strQuery = "";
-//        Field[] declaredFields = clz.getDeclaredFields();
-//        for (Field field : declaredFields)
-//            strQuery += field.getName() + " " + TypeConverter.getType(field.getType().toString()) + " NOT NULL, ";
-//        strQuery = strQuery.substring(0, strQuery.length() - 2);
-//        return String.format("CREATE TABLE %s (%s);", clz.getSimpleName().toLowerCase(), strQuery);
-//    }
-//
-//    private static <T> String createReadAllQueryBuilder(Class<T> clz) throws IllegalAccessException {
-//        String strQuery = "";
-//        Field[] declaredFields = clz.getDeclaredFields();
-//        for (Field field : declaredFields)
-//            strQuery += field.getName() + " " + TypeConverter.getType(field.getType().toString()) + " NOT NULL, ";
-//        strQuery = strQuery.substring(0, strQuery.length() - 2);
-//        return String.format("CREATE TABLE %s (%s);", clz.getSimpleName().toLowerCase(), strQuery);
-//    }
-
     private static <T> String deleteItemByPropertyQueryBuilder(Class<T> clz, String property, String value) throws
             NoSuchFieldException, IllegalAccessException {
         String strQuery = "DELETE FROM " + clz.getSimpleName().toLowerCase() + " WHERE ";
@@ -274,6 +238,8 @@ class ExecuteQuery {
     private static <T> String getTableName(Class<T> clz) {
         return clz.getSimpleName().toLowerCase();
     }
+
+    //----------------------------------------------------------- COMPLICATED BUILDERS
 
     public static <T> String createTableQueryBuilderWithAnnotations(Class<T> clz) throws IllegalAccessException, InvalidAttributeValueException {
         String strQuery = "";
@@ -335,68 +301,23 @@ class ExecuteQuery {
     }
 
     private static <T> void insertIdToItem(T item, String query) throws SQLException, IllegalAccessException {
-        Statement statement = ConnectionController.connect().prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
-        ResultSet rs = statement.executeQuery("SELECT MAX(id) FROM " + item.getClass().getSimpleName().toLowerCase() + ";");
-        if (rs.next()) {
-            long id = rs.getLong(1);
-            Field[] declaredFields = item.getClass().getDeclaredFields();
-            for (Field field : declaredFields) {
-                if (field.isAnnotationPresent(AutoIncrementedId.class)) {
-                    field.setAccessible(true);
-                    field.set(item, id + 1);
+        try {
+            Statement statement = ConnectionController.connect().prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+            ResultSet rs = statement.executeQuery("SELECT MAX(id) FROM " + item.getClass().getSimpleName().toLowerCase() + ";");
+            if (rs.next()) {
+                long id = rs.getLong(1);
+                Field[] declaredFields = item.getClass().getDeclaredFields();
+                for (Field field : declaredFields) {
+                    if (field.isAnnotationPresent(AutoIncrementedId.class)) {
+                        field.setAccessible(true);
+                        field.set(item, id + 1);
+                    }
                 }
             }
+            ConnectionController.disconnect();
+        } catch (IllegalAccessException | SQLException exception) {
+            System.out.println(exception);
         }
-        ConnectionController.disconnect();
     }
-
-//    public static void main(String[] args) throws SQLException, InvalidAttributeValueException, IllegalAccessException {
-////        ExecuteQuery2.deleteTable(Student.class);
-//        ExecuteQuery.createTableWithAnnotations(Student.class);
-//
-//        Student student1 = new Student("Ramesh Fadatare");
-//        Student student2 = new Student("Oleg");
-//        Student student3 = new Student("Ben");
-//
-//        System.out.println("==================================================");
-//
-//        System.out.println(student1);
-//        System.out.println(student2);
-//        System.out.println(student3);
-//        ExecuteQuery.addItemWithAnnotations(student1);
-//        ExecuteQuery.addItemWithAnnotations(student2);
-//        ExecuteQuery.addItemWithAnnotations(student3);
-//
-//
-//        System.out.println("==================================================");
-//        System.out.println(student1);
-//        System.out.println(student2);
-//        System.out.println(student3);
-//
-//
-//        ExecuteQuery.deleteTable(Dog.class);
-//        ExecuteQuery.createTableWithAnnotations(Dog.class);
-//
-//        Dog dog1 = new Dog(1,5,"a","A");
-//        Dog dog2 = new Dog(2,5,"b","B");
-//        Dog dog3 = new Dog(1,5,"c","C");
-////
-//        ExecuteQuery.addItemWithAnnotations(dog1);
-//        ExecuteQuery.addItemWithAnnotations(dog2);
-////        ExecuteQuery.addItemWithAnnotations(dog3);
-//        dog3.setId(3);
-//        ExecuteQuery.addItemWithAnnotations(dog3);
-//
-//
-//        ExecuteQuery.deleteTable(Cat.class);
-//        ExecuteQuery.createTableWithAnnotations(Cat.class);
-//        Cat cat1 = new Cat(1,1);
-//        Cat cat2 = new Cat(2,1);
-//        Cat cat3 = new Cat(3,2);
-//
-//        ExecuteQuery.addItemWithAnnotations(cat1);
-//        ExecuteQuery.addItemWithAnnotations(cat2);
-//        ExecuteQuery.addItemWithAnnotations(cat3);
-//    }
 }
 
