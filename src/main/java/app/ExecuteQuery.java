@@ -20,45 +20,58 @@ public class ExecuteQuery {
      */
 
     // Create table
-    public static <T> void createTable(Class<T> clz) throws SQLException, IllegalAccessException {
-        Statement statement = ConnectionController.connect().createStatement();
-        String createTableQuery = createTableQueryBuilder(clz);
-        statement.execute(createTableQuery);
-        ConnectionController.disconnect();
+    public static <T> void createTable(Class<T> clz){
+        try{
+            Statement statement = ConnectionController.connect().createStatement();
+            String createTableQuery = createTableQueryBuilder(clz);
+            statement.execute(createTableQuery);
+            ConnectionController.disconnect();
+        }
+        catch (IllegalAccessException | SQLException exception){
+            System.out.println(exception);
+        }
     }
 
     // Add item
-    public static <T> void addItem(T item) throws SQLException, IllegalAccessException {
-        Statement statement = ConnectionController.connect().createStatement();
-        String addItemQuery = addItemQueryBuilder(item);
-        statement.execute(addItemQuery);
-        ConnectionController.disconnect();
+    public static <T> void addItem(T item) {
+        try {
+            Statement statement = ConnectionController.connect().createStatement();
+            String addItemQuery = addItemQueryBuilder(item);
+            statement.execute(addItemQuery);
+            ConnectionController.disconnect();
+        } catch (IllegalAccessException | SQLException exception) {
+            System.out.println(exception);
+        }
     }
 
     // Delete Item by property
-    public static <T> void deleteItemByProperty(Class<T> clz, String property, String value) throws
-            IllegalAccessException, SQLException, FileNotFoundException, NoSuchFieldException {
-        Statement statement = ConnectionController.connect().createStatement();
-        String deleteByPropertyQuery = deleteItemByPropertyQueryBuilder(clz, property, value);
-        statement.execute(deleteByPropertyQuery);
-        ConnectionController.disconnect();
+    public static <T> void deleteItemByProperty(String property, String value, Class<T> clz) {
+        try {
+            Statement statement = ConnectionController.connect().createStatement();
+            String deleteByPropertyQuery = deleteItemByPropertyQueryBuilder(clz, property, value);
+            statement.execute(deleteByPropertyQuery);
+            ConnectionController.disconnect();
+        } catch (IllegalAccessException | SQLException | NoSuchFieldException exception) {
+            System.out.println(exception);
+        }
+
     }
 
     // Delete table
-    public static <T> void deleteTable(Class<T> clz) throws SQLException, FileNotFoundException {
-        Statement statement = ConnectionController.connect().createStatement();
-        statement.execute("DROP TABLE " + clz.getSimpleName().toLowerCase() + ";");
-        ConnectionController.disconnect();
+    public static <T> void deleteTable(Class<T> clz) {
+        try {
+            Statement statement = ConnectionController.connect().createStatement();
+            statement.execute("DROP TABLE " + clz.getSimpleName().toLowerCase() + ";");
+            ConnectionController.disconnect();
+        } catch (SQLException exception) {
+            System.out.println(exception);
+        }
     }
 
     // Add items
     public static <T> void addItems(ArrayList<T> items, Class<T> clz) {
         for (T item : items) {
-            try {
-                addItem(item);
-            } catch (IllegalAccessException | SQLException exception) {
-                System.out.println(exception);
-            }
+            addItem(item);
         }
     }
 
@@ -309,10 +322,9 @@ public class ExecuteQuery {
             String updatedProperties = "";
 
             for (int i = 0; i < properties.size(); i++) {
-                if(i != properties.size() -1) {
+                if (i != properties.size() - 1) {
                     updatedProperties += properties.get(i) + " = " + values.get(i) + ", ";
-                }
-                else{
+                } else {
                     updatedProperties += properties.get(i) + " = " + values.get(i);
                 }
             }
