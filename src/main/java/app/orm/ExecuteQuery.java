@@ -19,7 +19,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-class ExecuteQuery {
+public class ExecuteQuery {
 
     private static final TypeConverter typeConverter = TypeConverter.getInstance();
 

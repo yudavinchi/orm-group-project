@@ -21,6 +21,6 @@ public class TypeConverter {
 
     public static String getType(String key) {
         String value = typeMap.get(key);
-        return (value == null)? "TEXT(500)" : value;
+        return (value == null) ? "TEXT(500)" : value;
     }
 }

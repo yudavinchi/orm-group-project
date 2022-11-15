@@ -2,7 +2,7 @@ package app.orm;
 
 import java.util.List;
 
-class Query {
+public class Query {
     private final String query;
 
     public static class Builder {

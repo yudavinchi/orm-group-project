@@ -27,7 +27,6 @@ public class Repository<T> {
     }
 
     public T readById(int id) {
-
         return ExecuteQuery.readById(id, clz);
     }
 
