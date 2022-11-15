@@ -28,28 +28,6 @@ public class ExecuteQuery {
         statement.execute(addItemQuery);
         ConnectionController.disconnect();
     }
-    
-    public static <T> void addOne(T item, Class<T> clz) throws FileNotFoundException {
-        try {
-
-            Statement statement = ConnectionController.connect().createStatement();
-
-            List<String> columns = new ArrayList<>();
-            List<String> values = new ArrayList<>();
-            Field[] declaredFields = clz.getDeclaredFields();
-
-            for (Field field : declaredFields
-            ) {
-                columns.add(field.getName());
-                field.setAccessible(true);
-                values.add("'" + field.get(item) + "'");
-            }
-
-            String tableName = clz.getSimpleName().toLowerCase();
-
-            Query query = new Query.Builder().insertInto(tableName).withFields(columns).andValues(values).build();
-            statement.execute(query.getQuery());
-
 
     public static <T> void deleteItemByProperty(Class<T> clz, String property, String value) throws
             IllegalAccessException, SQLException, FileNotFoundException, NoSuchFieldException {
@@ -58,18 +36,22 @@ public class ExecuteQuery {
         statement.execute(deleteByPropertyQuery);
         ConnectionController.disconnect();
     }
+
     public static <T> void deleteTable(Class<T> clz) throws SQLException, FileNotFoundException {
         Statement statement = ConnectionController.connect().createStatement();
         statement.execute("DROP TABLE " + clz.getSimpleName().toLowerCase() + ";");
         ConnectionController.disconnect();
     }
 
-    public static <T> void addMany(ArrayList<T> items, Class<T> clz) throws FileNotFoundException {
-        for(T item : items){
-            addOne(item, clz);
+    public static <T> void addItems(ArrayList<T> items, Class<T> clz) {
+        for (T item : items) {
+            try {
+                addItem(item);
+            } catch (IllegalAccessException | SQLException exception) {
+                System.out.println(exception);
+            }
         }
     }
-
 
     //--------------------------------------------------------------- QUERY STRING BUILDERS
     private static <T> String addItemQueryBuilder(T item) throws IllegalAccessException {
@@ -221,7 +203,7 @@ public class ExecuteQuery {
     public static <T> List<T> readByProperty(String property, String value, Class<T> clz) {
         try {
 //            Statement statement = ConnectionController.connect().createStatement();
-            System.out.println(String.format("SELECT * FROM %s WHERE %s='%s';", clz.getSimpleName().toLowerCase(), property, value));
+//            System.out.println(String.format("SELECT * FROM %s WHERE %s='%s';", clz.getSimpleName().toLowerCase(), property, value));
 //            ResultSet rs = statement.executeQuery(String.format("SELECT * FROM %s WHERE %s='%s';", clz.getSimpleName().toLowerCase(), property, value));
 
 
@@ -267,8 +249,8 @@ public class ExecuteQuery {
         }
         return null;
     }
-    
-    public static <T> void updatePropertyById(int id, String property, String value, Class<T> clz){
+
+    public static <T> void updatePropertyById(int id, String property, String value, Class<T> clz) {
         try {
             Statement statement = ConnectionController.connect().createStatement();
 
@@ -287,7 +269,7 @@ public class ExecuteQuery {
         }
     }
 
-    public static <T> void updateEntireItemById(int id, T item, Class<T> clz){
+    public static <T> void updateEntireItemById(int id, T item, Class<T> clz) {
 
     }
 }
