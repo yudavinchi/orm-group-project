@@ -18,42 +18,64 @@ public class ExecuteQuery {
 
     private static final String url = "src/main/java/configurations/sql config.json";
 
+    /*
+        Repository<User> repository = new Repository(User.class);
+        User user = repository.findOne(3);
+     */
 
-    public static <T> void createTable(Class<T> clz) throws SQLException, IllegalAccessException {
-        Statement statement = ConnectionController.connect().createStatement();
-        String createTableQuery = createTableQueryBuilder(clz);
-        statement.execute(createTableQuery);
-        ConnectionController.disconnect();
+    // Create table
+    public static <T> void createTable(Class<T> clz){
+        try{
+            Statement statement = ConnectionController.connect().createStatement();
+            String createTableQuery = createTableQueryBuilder(clz);
+            statement.execute(createTableQuery);
+            ConnectionController.disconnect();
+        }
+        catch (IllegalAccessException | SQLException exception){
+            System.out.println(exception);
+        }
     }
 
-    public static <T> void addItem(T item) throws SQLException, IllegalAccessException {
-        Statement statement = ConnectionController.connect().createStatement();
-        String addItemQuery = addItemQueryBuilder(item);
-        statement.execute(addItemQuery);
-        ConnectionController.disconnect();
+    // Add item
+    public static <T> void addItem(T item) {
+        try {
+            Statement statement = ConnectionController.connect().createStatement();
+            String addItemQuery = addItemQueryBuilder(item);
+            statement.execute(addItemQuery);
+            ConnectionController.disconnect();
+        } catch (IllegalAccessException | SQLException exception) {
+            System.out.println(exception);
+        }
     }
 
-    public static <T> void deleteItemByProperty(Class<T> clz, String property, String value) throws
-            IllegalAccessException, SQLException, FileNotFoundException, NoSuchFieldException {
-        Statement statement = ConnectionController.connect().createStatement();
-        String deleteByPropertyQuery = deleteItemByPropertyQueryBuilder(clz, property, value);
-        statement.execute(deleteByPropertyQuery);
-        ConnectionController.disconnect();
+    // Delete Item by property
+    public static <T> void deleteItemByProperty(String property, String value, Class<T> clz) {
+        try {
+            Statement statement = ConnectionController.connect().createStatement();
+            String deleteByPropertyQuery = deleteItemByPropertyQueryBuilder(clz, property, value);
+            statement.execute(deleteByPropertyQuery);
+            ConnectionController.disconnect();
+        } catch (IllegalAccessException | SQLException | NoSuchFieldException exception) {
+            System.out.println(exception);
+        }
+
     }
 
-    public static <T> void deleteTable(Class<T> clz) throws SQLException, FileNotFoundException {
-        Statement statement = ConnectionController.connect().createStatement();
-        statement.execute("DROP TABLE " + clz.getSimpleName().toLowerCase() + ";");
-        ConnectionController.disconnect();
+    // Delete table
+    public static <T> void deleteTable(Class<T> clz) {
+        try {
+            Statement statement = ConnectionController.connect().createStatement();
+            statement.execute("DROP TABLE " + clz.getSimpleName().toLowerCase() + ";");
+            ConnectionController.disconnect();
+        } catch (SQLException exception) {
+            System.out.println(exception);
+        }
     }
 
+    // Add items
     public static <T> void addItems(ArrayList<T> items, Class<T> clz) {
         for (T item : items) {
-            try {
-                addItem(item);
-            } catch (IllegalAccessException | SQLException exception) {
-                System.out.println(exception);
-            }
+            addItem(item);
         }
     }
 
@@ -62,8 +84,7 @@ public class ExecuteQuery {
         List<String> columns = new ArrayList<>();
         List<String> values = new ArrayList<>();
         Field[] declaredFields = item.getClass().getDeclaredFields();
-        for (Field field : declaredFields
-        ) {
+        for (Field field : declaredFields) {
             columns.add(field.getName());
             field.setAccessible(true);
             if (needToConvertToJson(returnValueTypeString(field.getType().toString()))) {
@@ -148,11 +169,14 @@ public class ExecuteQuery {
 
     //------------------------------------------------------------------------------------------------------------------------
 
+    // Read all items in table
     public static <T> List<T> readAll(Class<T> clz) {
         try {
             Statement statement = ConnectionController.connect().createStatement();
 
-            Query query = new Query.Builder().select("*").from(clz.getSimpleName().toLowerCase()).build();
+            String table = clz.getSimpleName().toLowerCase();
+
+            Query query = new Query.Builder().select("*").from(table).build();
             ResultSet rs = statement.executeQuery(query.getQuery());
 
             List<T> results = new ArrayList<>();
@@ -177,11 +201,14 @@ public class ExecuteQuery {
         return null;
     }
 
+    // Read item by ID
     public static <T> T readById(int id, Class<T> clz) {
         try {
             Statement statement = ConnectionController.connect().createStatement();
 
-            Query query = new Query.Builder().select("*").from(clz.getSimpleName().toLowerCase()).where("id", String.valueOf(id)).build();
+            String table = clz.getSimpleName().toLowerCase();
+
+            Query query = new Query.Builder().select("*").from(table).where("id", String.valueOf(id)).build();
             ResultSet rs = statement.executeQuery(query.getQuery());
 
             T result = null;
@@ -206,6 +233,7 @@ public class ExecuteQuery {
         return null;
     }
 
+    // Read by property
     public static <T> List<T> readByProperty(String property, String value, Class<T> clz) {
         try {
 //            Statement statement = ConnectionController.connect().createStatement();
@@ -231,7 +259,9 @@ public class ExecuteQuery {
 //            return results;
             Statement statement = ConnectionController.connect().createStatement();
 
-            Query query = new Query.Builder().select("*").from(clz.getSimpleName().toLowerCase()).where(property, value).build();
+            String table = clz.getSimpleName().toLowerCase();
+
+            Query query = new Query.Builder().select("*").from(table).where(property, value).build();
             ResultSet rs = statement.executeQuery(query.getQuery());
 
             List<T> results = new ArrayList<>();
@@ -256,6 +286,7 @@ public class ExecuteQuery {
         return null;
     }
 
+    // Update property by ID
     public static <T> void updatePropertyById(int id, String property, String value, Class<T> clz) {
         try {
             Statement statement = ConnectionController.connect().createStatement();
@@ -265,7 +296,9 @@ public class ExecuteQuery {
             SET column1 = value1, column2 = value2, ...
             WHERE condition;
              */
-            Query query = new Query.Builder().update(clz.getSimpleName().toLowerCase()).set(property, value).where("id", String.valueOf(id)).build();
+            String table = clz.getSimpleName().toLowerCase();
+
+            Query query = new Query.Builder().update(table).set(property, value).where("id", String.valueOf(id)).build();
             statement.executeUpdate(query.getQuery());
 
             ConnectionController.disconnect();
@@ -275,8 +308,43 @@ public class ExecuteQuery {
         }
     }
 
+    // Update entire item by ID
     public static <T> void updateEntireItemById(int id, T item, Class<T> clz) {
+        try {
+            Statement statement = ConnectionController.connect().createStatement();
 
+            List<String> properties = new ArrayList<>();
+            List<String> values = new ArrayList<>();
+            Field[] declaredFields = clz.getDeclaredFields();
+
+            for (Field field : declaredFields) {
+
+                properties.add(field.getName());
+                field.setAccessible(true);
+                values.add("'" + field.get(item) + "'");
+            }
+
+            String table = clz.getSimpleName().toLowerCase();
+            String updatedProperties = "";
+
+            for (int i = 0; i < properties.size(); i++) {
+                if (i != properties.size() - 1) {
+                    updatedProperties += properties.get(i) + " = " + values.get(i) + ", ";
+                } else {
+                    updatedProperties += properties.get(i) + " = " + values.get(i);
+                }
+            }
+
+            System.out.println(String.format("UPDATE %s SET %s WHERE id = '%s';", table, updatedProperties, id));
+            String query = String.format("UPDATE %s SET %s WHERE id = '%s';", table, updatedProperties, id);
+
+            statement.executeUpdate(query);
+
+            ConnectionController.disconnect();
+
+        } catch (Exception e) {
+            System.out.println("general exception " + e);
+        }
     }
 
 

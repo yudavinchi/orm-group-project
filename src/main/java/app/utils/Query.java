@@ -56,6 +56,7 @@ public class Query {
             return this;
         }
 
+        // SET
         public Builder set(String property, String value){
             query = String.format(query + " SET %s='%s'", property, value);
             return this;

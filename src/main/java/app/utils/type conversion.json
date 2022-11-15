@@ -1,0 +1,13 @@
+{
+  "class java.lang.Boolean": "VARCHAR(5)",
+  "class java.lang.Byte": "BINARY",
+  "class java.lang.Short": "SMALLINT",
+  "int": "INTEGER",
+  "class java.lang.String": "VARCHAR(256)",
+  "long": "BIGINT",
+  "float": "FLOAT",
+  "double": "DOUBLE",
+  "class java.time.LocalDateTime": "DATETIME",
+  "char": "VARCHAR(1)",
+  "default": "TEXT(500)"
+}
