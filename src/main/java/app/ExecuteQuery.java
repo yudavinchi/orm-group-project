@@ -14,6 +14,7 @@ public class ExecuteQuery {
 
     private static final String url = "src/main/java/configurations/sql config.json";
 
+
     public static <T> void createTable(Class<T> clz) throws SQLException, IllegalAccessException {
         Statement statement = ConnectionController.connect().createStatement();
         String createTableQuery = createTableQueryBuilder(clz);
@@ -27,6 +28,28 @@ public class ExecuteQuery {
         statement.execute(addItemQuery);
         ConnectionController.disconnect();
     }
+    
+    public static <T> void addOne(T item, Class<T> clz) throws FileNotFoundException {
+        try {
+
+            Statement statement = ConnectionController.connect().createStatement();
+
+            List<String> columns = new ArrayList<>();
+            List<String> values = new ArrayList<>();
+            Field[] declaredFields = clz.getDeclaredFields();
+
+            for (Field field : declaredFields
+            ) {
+                columns.add(field.getName());
+                field.setAccessible(true);
+                values.add("'" + field.get(item) + "'");
+            }
+
+            String tableName = clz.getSimpleName().toLowerCase();
+
+            Query query = new Query.Builder().insertInto(tableName).withFields(columns).andValues(values).build();
+            statement.execute(query.getQuery());
+
 
     public static <T> void deleteItemByProperty(Class<T> clz, String property, String value) throws
             IllegalAccessException, SQLException, FileNotFoundException, NoSuchFieldException {
@@ -39,6 +62,12 @@ public class ExecuteQuery {
         Statement statement = ConnectionController.connect().createStatement();
         statement.execute("DROP TABLE " + clz.getSimpleName().toLowerCase() + ";");
         ConnectionController.disconnect();
+    }
+
+    public static <T> void addMany(ArrayList<T> items, Class<T> clz) throws FileNotFoundException {
+        for(T item : items){
+            addOne(item, clz);
+        }
     }
 
 
@@ -135,7 +164,9 @@ public class ExecuteQuery {
         try {
             Statement statement = ConnectionController.connect().createStatement();
 
-            ResultSet rs = statement.executeQuery(String.format("select * from %s", clz.getSimpleName().toLowerCase()));
+            Query query = new Query.Builder().select("*").from(clz.getSimpleName().toLowerCase()).build();
+            ResultSet rs = statement.executeQuery(query.getQuery());
+
             List<T> results = new ArrayList<>();
 
             while (rs.next()) {
@@ -162,7 +193,9 @@ public class ExecuteQuery {
         try {
             Statement statement = ConnectionController.connect().createStatement();
 
-            ResultSet rs = statement.executeQuery(String.format("select * from %s where id = %s", clz.getSimpleName().toLowerCase(), id));
+            Query query = new Query.Builder().select("*").from(clz.getSimpleName().toLowerCase()).where("id", String.valueOf(id)).build();
+            ResultSet rs = statement.executeQuery(query.getQuery());
+
             T result = null;
 
             while (rs.next()) {
@@ -208,13 +241,54 @@ public class ExecuteQuery {
 //            }
 //            ConnectionController.disconnect();
 //            return results;
+            Statement statement = ConnectionController.connect().createStatement();
+
+            Query query = new Query.Builder().select("*").from(clz.getSimpleName().toLowerCase()).where(property, value).build();
+            ResultSet rs = statement.executeQuery(query.getQuery());
+
+            List<T> results = new ArrayList<>();
+
+            while (rs.next()) {
+                Constructor<T> constructor = clz.getConstructor();
+                T item = (T) constructor.newInstance();
+                Field[] declaredFields = clz.getDeclaredFields();
+
+                for (Field field : declaredFields) {
+                    field.setAccessible(true);
+                    field.set(item, rs.getObject(field.getName()));
+                }
+                results.add(item);
+            }
+            ConnectionController.disconnect();
+            return results;
 
         } catch (Exception e) {
             System.out.println("general exception " + e);
         }
         return null;
     }
+    
+    public static <T> void updatePropertyById(int id, String property, String value, Class<T> clz){
+        try {
+            Statement statement = ConnectionController.connect().createStatement();
 
+            /*
+            UPDATE table_name
+            SET column1 = value1, column2 = value2, ...
+            WHERE condition;
+             */
+            Query query = new Query.Builder().update(clz.getSimpleName().toLowerCase()).set(property, value).where("id", String.valueOf(id)).build();
+            statement.executeUpdate(query.getQuery());
 
+            ConnectionController.disconnect();
+
+        } catch (Exception e) {
+            System.out.println("general exception " + e);
+        }
+    }
+
+    public static <T> void updateEntireItemById(int id, T item, Class<T> clz){
+
+    }
 }
 
