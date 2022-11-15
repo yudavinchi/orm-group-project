@@ -1,11 +1,11 @@
 package app.orm.entities;
 
 public class Person {
-    int id;
-    String firstName;
-    String lastName;
-    String email;
-    String gender;
+    private int id;
+    private String firstName;
+    private String lastName;
+    private String email;
+    private String gender;
 
     public Person(int id) {}
 

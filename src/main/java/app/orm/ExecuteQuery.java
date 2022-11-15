@@ -55,7 +55,7 @@ class ExecuteQuery {
             logger.error(exception.toString());
             System.out.println(exception);
         }
-        logger.info("Successfully read All from class" + results.toString());
+        logger.info("Successfully read All from class");
         return results;
     }
 
@@ -73,7 +73,7 @@ class ExecuteQuery {
             logger.error(exception.toString());
             System.out.println(exception);
         }
-        logger.info("Successfully read by id(int) from class" + result.toString());
+        logger.info("Successfully read by id(int) from class");
         return result;
     }
 
@@ -91,7 +91,7 @@ class ExecuteQuery {
             logger.error(exception.toString());
             System.out.println(exception);
         }
-        logger.info("Successfully read by id(int) from class" + results.toString());
+        logger.info("Successfully read by id(int) from class");
         return results;
     }
 
@@ -175,7 +175,7 @@ class ExecuteQuery {
             String deleteByPropertyQuery = deleteItemByPropertyQueryBuilder(clz, property, value);
             statement.execute(deleteByPropertyQuery);
             ConnectionController.disconnect();
-        } catch (IllegalAccessException | SQLException | NoSuchFieldException exception) {
+        } catch (SQLException exception) {
             logger.error(exception.toString());
             System.out.println(exception);
         }
@@ -192,24 +192,30 @@ class ExecuteQuery {
         }
     }
 
-    private static <T> String deleteItemByPropertyQueryBuilder(Class<T> clz, String property, String value) throws
-            NoSuchFieldException, IllegalAccessException {
-        String strQuery = "DELETE FROM " + clz.getSimpleName().toLowerCase() + " WHERE ";
-        Field[] declaredFields = clz.getDeclaredFields();
-        Boolean foundProperty = false;
-        for (Field field : declaredFields) {
-            if (field.getName().equals(property)) {
-                foundProperty = true;
-                strQuery += " " + field.getName();
+    private static <T> String deleteItemByPropertyQueryBuilder(Class<T> clz, String property, String value){
+        try {
+            String strQuery = "DELETE FROM " + clz.getSimpleName().toLowerCase() + " WHERE ";
+            Field[] declaredFields = clz.getDeclaredFields();
+            Boolean foundProperty = false;
+            for (Field field : declaredFields) {
+                if (field.getName().equals(property.toLowerCase())) {
+                    foundProperty = true;
+                    strQuery += " " + field.getName();
+                }
             }
+            strQuery += " = " + "'" + value + "';";
+            if (!foundProperty) {
+                logger.error("Successfully read by id(int) from class");
+                throw new NoSuchFieldException("The input property doesn't exists in the table");
+            }
+            logger.info("Successfully deleted item by property");
+            return strQuery;
         }
-        strQuery += " = " + "'" + value + "';";
-        if (!foundProperty) {
-            logger.error("Successfully read by id(int) from class");
-            throw new NoSuchFieldException("The input property doesn't exists in the table");
+        catch (NoSuchFieldException exception){
+            logger.error(exception);
+            System.out.println(exception);
         }
-        logger.info("Successfully deleted item by property" + strQuery);
-        return strQuery;
+        return null;
     }
 
     //----------------------------------------------------------- HELP FUNCTIONS
@@ -247,7 +253,7 @@ class ExecuteQuery {
                 }
                 results.add(item);
             }
-            logger.info("Successfully gets results : " + results);
+            logger.info("Successfully gets results");
             return results;
         }
         catch (IllegalAccessException | SQLException | InvocationTargetException | RuntimeException |
@@ -272,10 +278,10 @@ class ExecuteQuery {
             for (Field field : declaredFields) {
                 if (field.isAnnotationPresent(AutoIncrementedId.class)) {
                     primaryKeys++;
-                    strQuery += "id" + " " + TypeConverter.getType(field.getType().toString()) + " primary key AUTO_INCREMENT";
+                    strQuery += field.getName() + " " + TypeConverter.getType(field.getType().toString()) + " primary key AUTO_INCREMENT";
                 } else if (field.isAnnotationPresent(Id.class)) {
                     primaryKeys++;
-                    strQuery += "id" + " " + TypeConverter.getType(field.getType().toString()) + " primary key UNIQUE NOT NULL";
+                    strQuery += field.getName() + " " + TypeConverter.getType(field.getType().toString()) + " primary key UNIQUE NOT NULL";
                 } else {
                     strQuery += field.getName() + " " + TypeConverter.getType(field.getType().toString());
                 }
