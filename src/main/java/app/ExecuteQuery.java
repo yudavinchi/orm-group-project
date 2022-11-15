@@ -1,9 +1,13 @@
 package app;
 
-import app.utils.File;
+import app.entities.AutoIncrementedId;
+import app.entities.UniqueValue;
 import app.utils.Query;
 import com.google.gson.Gson;
+import org.jetbrains.annotations.NotNull;
 
+import javax.management.InvalidAttributeValueException;
+import javax.persistence.Id;
 import java.io.FileNotFoundException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -110,10 +114,12 @@ public class ExecuteQuery {
             case "class java.lang.Short":
                 return "SMALLINT";
             case "int":
+            case "class java.lang.Integer":
                 return "INTEGER";
             case "class java.lang.String":
                 return "VARCHAR(256)";
             case "long":
+            case "class java.lang.Long":
                 return "BIGINT";
             case "float":
                 return "FLOAT";
@@ -171,7 +177,7 @@ public class ExecuteQuery {
         return null;
     }
 
-    public static <T> T readById(int id, Class<T> clz) {
+    public static <T> T readById(long id, Class<T> clz) {
         try {
             Statement statement = ConnectionController.connect().createStatement();
 
@@ -272,5 +278,111 @@ public class ExecuteQuery {
     public static <T> void updateEntireItemById(int id, T item, Class<T> clz) {
 
     }
-}
 
+
+    // -------------------------------------------- WITH ANNOTATIONS
+
+    public static <T> void createTableWithAnnotations(Class<T> clz) throws SQLException, IllegalAccessException, InvalidAttributeValueException {
+        Statement statement = ConnectionController.connect().createStatement();
+        String createTableQuery = createTableQueryBuilderWithAnnotations(clz);
+        statement.execute(createTableQuery);
+        ConnectionController.disconnect();
+    }
+
+    public static <T> String createTableQueryBuilderWithAnnotations(Class<T> clz) throws IllegalAccessException, InvalidAttributeValueException {
+        String strQuery = "";
+        Field[] declaredFields = clz.getDeclaredFields();
+        int primaryKeys = 0;
+        for (Field field : declaredFields) {
+            if (field.isAnnotationPresent(AutoIncrementedId.class)) {
+                primaryKeys++;
+                strQuery += "id" + " " + returnValueTypeString(field.getType().toString()) + " primary key AUTO_INCREMENT";
+            } else if (field.isAnnotationPresent(Id.class)) {
+                primaryKeys++;
+                strQuery += "id" + " " + returnValueTypeString(field.getType().toString()) + " primary key UNIQUE NOT NULL";
+            } else {
+                strQuery += field.getName() + " " + returnValueTypeString(field.getType().toString());
+            }
+
+            if (field.isAnnotationPresent(UniqueValue.class)) {// UNIQUE
+                strQuery += " UNIQUE";
+            }
+            if (field.isAnnotationPresent(NotNull.class) && !field.isAnnotationPresent(Id.class)) {// NOT NULL annotation for not id fields
+                strQuery += " NOT NULL";
+            }
+            strQuery += ", ";
+
+            if (primaryKeys > 1) {
+                throw new InvalidAttributeValueException("The class contains more then 2 @Ids");
+            }
+        }
+        strQuery = strQuery.substring(0, strQuery.length() - 2);
+        return String.format("CREATE TABLE %s (%s);", clz.getSimpleName().toLowerCase(), strQuery);
+    }
+
+
+    public static <T> void addItemWithAnnotations(T item) throws SQLException, IllegalAccessException {
+        Statement statement = ConnectionController.connect().createStatement();
+        String addItemQuery = addItemQueryBuilderWithAnnotations(item);
+        System.out.println("327 ----- "+addItemQuery);
+//        ResultSet rs = statement.executeQuery("SELECT LAST_INSERT_ID();");
+//        int val = ((Number) rs.getObject(1)).intValue();
+        statement.execute(addItemQuery);
+        ConnectionController.disconnect();
+//        updateIdForAutoIncrementedId(val, item.getClass());
+
+    }
+
+
+    private static <T> String addItemQueryBuilderWithAnnotations(T item) throws IllegalAccessException, SQLException {
+        List<String> columns = new ArrayList<>();
+        List<String> values = new ArrayList<>();
+        boolean neeToUpdateObjectId = false;
+        Field[] declaredFields = item.getClass().getDeclaredFields();
+        for (Field field : declaredFields
+        ) {
+            System.out.println("344 ----- " + field.getName() + " item: " + item);
+            if (field.isAnnotationPresent(AutoIncrementedId.class) == true) {
+                System.out.println("356 ------  AutoIncrementedId.class in " + item + field.getName());
+                neeToUpdateObjectId = true;
+                columns.add(field.getName());
+                field.setAccessible(true);
+                if (needToConvertToJson(returnValueTypeString(field.getType().toString()))) {
+                    values.add("'" + objectToJsonString(field.get(item)) + "'");
+                } else {
+                    values.add("'" + field.get(item) + "'");
+                }
+            }
+
+        }
+        String query = String.format("INSERT INTO %s (%s) VALUES (%s);", item.getClass().getSimpleName().toLowerCase(), String.join(",", columns), String.join(",", values));
+        ;
+        if (neeToUpdateObjectId) {
+            insertIdToItmed(item, query);
+        }
+        return String.format("INSERT INTO %s (%s) VALUES (%s);", item.getClass().getSimpleName().toLowerCase(), String.join(",", columns), String.join(",", values));
+    }
+
+    private static <T> void insertIdToItmed(T item, String query) throws SQLException, IllegalAccessException {
+        Statement statement = ConnectionController.connect().prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+        statement.execute(query);
+        ResultSet rs = statement.executeQuery("SELECT LAST_INSERT_ID();");
+        if (rs.next()) {
+            long id = rs.getLong(1);
+            System.out.println("382----- Inserted ID: " + id + " for item: "+ item); // display inserted record
+            Field[] declaredFields = item.getClass().getDeclaredFields();
+            for (Field field : declaredFields
+            ) {
+                if (field.isAnnotationPresent(AutoIncrementedId.class)) {
+                    System.out.println("387 ----- set this filed " + field.getName());
+                    field.setAccessible(true);
+                    field.set(item, id);
+                    System.out.println("389----- updated item: "+item);
+                }
+
+            }
+        }
+        ConnectionController.disconnect();
+    }
+
+}
