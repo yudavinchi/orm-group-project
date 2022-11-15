@@ -9,7 +9,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class File {
-
     public static HashMap<String, String> readJson(String path) {
 
         BufferedReader bufferedReader = null;
