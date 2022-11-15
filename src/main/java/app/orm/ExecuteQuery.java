@@ -26,17 +26,17 @@ class ExecuteQuery {
     public static <T> void createTable(Class<T> clz) {
         try {
             Statement statement = ConnectionController.connect().createStatement();
-            String createTableQuery = createTableQueryBuilder(clz);
+            String createTableQuery = createTableQueryBuilderWithAnnotations(clz);
             statement.execute(createTableQuery);
             ConnectionController.disconnect();
-        } catch (IllegalAccessException | SQLException exception) {
+        } catch (InvalidAttributeValueException | IllegalAccessException | SQLException exception) {
             System.out.println(exception);
         }
     }
 
+
     //=========================== READ ===========================
     public static <T> List<T> readAll(Class<T> clz) {
-
         List<T> results = null;
 
         try {
@@ -45,14 +45,14 @@ class ExecuteQuery {
             ResultSet rs = statement.executeQuery(query.getQuery());
             results = getResults(rs, clz);
             ConnectionController.disconnect();
-        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException | SQLException exception) {
+        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException |
+                 SQLException exception) {
             System.out.println(exception);
         }
         return results;
     }
 
     public static <T> T readById(int id, Class<T> clz) {
-
         T result = null;
 
         try {
@@ -61,7 +61,8 @@ class ExecuteQuery {
             ResultSet rs = statement.executeQuery(query.getQuery());
             result = getResult(rs, clz);
             ConnectionController.disconnect();
-        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException | SQLException exception) {
+        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException |
+                 SQLException exception) {
             System.out.println(exception);
         }
 
@@ -78,8 +79,8 @@ class ExecuteQuery {
             Query query = new Query.Builder().select("*").from(table).where(property, value).build();
             ResultSet rs = statement.executeQuery(query.getQuery());
             results = getResults(rs, clz);
-        }
-        catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException | SQLException exception) {
+        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException |
+                 SQLException exception) {
             System.out.println(exception);
         }
         return results;
@@ -90,7 +91,7 @@ class ExecuteQuery {
     public static <T> void addItem(T item) {
         try {
             Statement statement = ConnectionController.connect().createStatement();
-            String addItemQuery = addItemQueryBuilder(item);
+            String addItemQuery = addItemQueryBuilderWithAnnotations(item);
             statement.execute(addItemQuery);
             ConnectionController.disconnect();
         } catch (IllegalAccessException | SQLException exception) {
@@ -165,7 +166,6 @@ class ExecuteQuery {
         } catch (IllegalAccessException | SQLException | NoSuchFieldException exception) {
             System.out.println(exception);
         }
-
     }
 
     public static <T> void deleteTable(Class<T> clz) {
@@ -179,41 +179,41 @@ class ExecuteQuery {
     }
 
 
-    //--------------------------------------------------------------- QUERY STRING BUILDERS
-    private static <T> String addItemQueryBuilder(T item) throws IllegalAccessException {
-        List<String> columns = new ArrayList<>();
-        List<String> values = new ArrayList<>();
-        Field[] declaredFields = item.getClass().getDeclaredFields();
-        for (Field field : declaredFields) {
-            columns.add(field.getName());
-            field.setAccessible(true);
-            if (needToConvertToJson(TypeConverter.getType(field.getType().toString()))) {
-                values.add("'" + objectToJsonString(field.get(item)) + "'");
-            } else {
-                values.add("'" + field.get(item) + "'");
-            }
-        }
-        return String.format("INSERT INTO %s (%s) VALUES (%s);", item.getClass().getSimpleName().toLowerCase(), String.join(",", columns), String.join(",", values));
-    }
+//    //--------------------------------------------------------------- QUERY STRING BUILDERS
+//    private static <T> String addItemQueryBuilder(T item) throws IllegalAccessException {
+//        List<String> columns = new ArrayList<>();
+//        List<String> values = new ArrayList<>();
+//        Field[] declaredFields = item.getClass().getDeclaredFields();
+//        for (Field field : declaredFields) {
+//            columns.add(field.getName());
+//            field.setAccessible(true);
+//            if (needToConvertToJson(TypeConverter.getType(field.getType().toString()))) {
+//                values.add("'" + objectToJsonString(field.get(item)) + "'");
+//            } else {
+//                values.add("'" + field.get(item) + "'");
+//            }
+//        }
+//        return String.format("INSERT INTO %s (%s) VALUES (%s);", item.getClass().getSimpleName().toLowerCase(), String.join(",", columns), String.join(",", values));
+//    }
 
-    private static <T> String createTableQueryBuilder(Class<T> clz) throws IllegalAccessException {
-        String strQuery = "";
-        Field[] declaredFields = clz.getDeclaredFields();
-        for (Field field : declaredFields)
-            strQuery += field.getName() + " " + TypeConverter.getType(field.getType().toString()) + " NOT NULL, ";
-        strQuery = strQuery.substring(0, strQuery.length() - 2);
-        return String.format("CREATE TABLE %s (%s);", clz.getSimpleName().toLowerCase(), strQuery);
-    }
 
-    private static <T> String createReadAllQueryBuilder(Class<T> clz) throws IllegalAccessException {
-        String strQuery = "";
-        Field[] declaredFields = clz.getDeclaredFields();
-        for (Field field : declaredFields)
-            strQuery += field.getName() + " " + TypeConverter.getType(field.getType().toString()) + " NOT NULL, ";
-        strQuery = strQuery.substring(0, strQuery.length() - 2);
-        return String.format("CREATE TABLE %s (%s);", clz.getSimpleName().toLowerCase(), strQuery);
-    }
-
+//    private static <T> String createTableQueryBuilder(Class<T> clz) throws IllegalAccessException {
+//        String strQuery = "";
+//        Field[] declaredFields = clz.getDeclaredFields();
+//        for (Field field : declaredFields)
+//            strQuery += field.getName() + " " + TypeConverter.getType(field.getType().toString()) + " NOT NULL, ";
+//        strQuery = strQuery.substring(0, strQuery.length() - 2);
+//        return String.format("CREATE TABLE %s (%s);", clz.getSimpleName().toLowerCase(), strQuery);
+//    }
+//
+//    private static <T> String createReadAllQueryBuilder(Class<T> clz) throws IllegalAccessException {
+//        String strQuery = "";
+//        Field[] declaredFields = clz.getDeclaredFields();
+//        for (Field field : declaredFields)
+//            strQuery += field.getName() + " " + TypeConverter.getType(field.getType().toString()) + " NOT NULL, ";
+//        strQuery = strQuery.substring(0, strQuery.length() - 2);
+//        return String.format("CREATE TABLE %s (%s);", clz.getSimpleName().toLowerCase(), strQuery);
+//    }
 
     private static <T> String deleteItemByPropertyQueryBuilder(Class<T> clz, String property, String value) throws
             NoSuchFieldException, IllegalAccessException {
@@ -235,33 +235,6 @@ class ExecuteQuery {
 
     //----------------------------------------------------------- HELP FUNCTIONS
 
-//    private static String returnValueTypeString(String type) {
-//        switch (type) {
-//            case "class java.lang.Boolean":
-//                return "VARCHAR(5)";
-//            case "class java.lang.Byte":
-//                return "BINARY";
-//            case "class java.lang.Short":
-//                return "SMALLINT";
-//            case "int":
-//                return "INTEGER";
-//            case "class java.lang.String":
-//                return "VARCHAR(256)";
-//            case "long":
-//                return "BIGINT";
-//            case "float":
-//                return "FLOAT";
-//            case "double":
-//                return "DOUBLE";
-//            case "class java.time.LocalDateTime":
-//                return "DATETIME";
-//            case "char":
-//                return "VARCHAR(1)";
-//            default:
-//                return "TEXT(500)";
-//        }
-//    }
-
     private static <T> Boolean needToConvertToJson(String stringType) {
         if (stringType.equals("TEXT(500)")) {
             return true;
@@ -274,11 +247,10 @@ class ExecuteQuery {
         return gson.toJson(o);
     }
 
-    //------------------------------------------------------------------------------------------------------------------------
-
-    private static <T> T getResult(ResultSet rs, Class<T> clz) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException, SQLException {
+    private static <T> T getResult(ResultSet rs, Class<T> clz)
+            throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException, SQLException {
         List<T> results = getResults(rs, clz);
-        return (results.size() == 0)? null : results.get(0);
+        return (results.size() == 0) ? null : results.get(0);
     }
 
     private static <T> List<T> getResults(ResultSet rs, Class<T> clz) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException, SQLException {
@@ -301,15 +273,6 @@ class ExecuteQuery {
 
     private static <T> String getTableName(Class<T> clz) {
         return clz.getSimpleName().toLowerCase();
-    }
-
-    //------------------------------------------------------------------------------------------------------------------
-
-    public static <T> void createTableWithAnnotations(Class<T> clz) throws SQLException, IllegalAccessException, InvalidAttributeValueException {
-        Statement statement = ConnectionController.connect().createStatement();
-        String createTableQuery = createTableQueryBuilderWithAnnotations(clz);
-        statement.execute(createTableQuery);
-        ConnectionController.disconnect();
     }
 
     public static <T> String createTableQueryBuilderWithAnnotations(Class<T> clz) throws IllegalAccessException, InvalidAttributeValueException {
@@ -343,12 +306,6 @@ class ExecuteQuery {
         return String.format("CREATE TABLE %s (%s);", clz.getSimpleName().toLowerCase(), strQuery);
     }
 
-    public static <T> void addItemWithAnnotations(T item) throws SQLException, IllegalAccessException {
-        Statement statement = ConnectionController.connect().createStatement();
-        String addItemQuery = addItemQueryBuilderWithAnnotations(item);
-        statement.execute(addItemQuery);
-        ConnectionController.disconnect();
-    }
 
     private static <T> String addItemQueryBuilderWithAnnotations(T item) throws IllegalAccessException, SQLException {
         List<String> columns = new ArrayList<>();
@@ -361,8 +318,7 @@ class ExecuteQuery {
             if (field.isAnnotationPresent(AutoIncrementedId.class)) {
                 columns.add("id");
                 neeToUpdateObjectId = true;
-            }
-            else{
+            } else {
                 columns.add(field.getName());
             }
             if (needToConvertToJson(TypeConverter.getType(field.getType().toString()))) {
@@ -372,7 +328,6 @@ class ExecuteQuery {
             }
         }
         String query = String.format("INSERT INTO %s (%s) VALUES (%s);", item.getClass().getSimpleName().toLowerCase(), String.join(",", columns), String.join(",", values));
-        ;
         if (neeToUpdateObjectId) {
             insertIdToItem(item, query);
         }
@@ -381,17 +336,15 @@ class ExecuteQuery {
 
     private static <T> void insertIdToItem(T item, String query) throws SQLException, IllegalAccessException {
         Statement statement = ConnectionController.connect().prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
-        ResultSet rs = statement.executeQuery("SELECT MAX(id) FROM " + item.getClass().getSimpleName().toLowerCase() +";");
+        ResultSet rs = statement.executeQuery("SELECT MAX(id) FROM " + item.getClass().getSimpleName().toLowerCase() + ";");
         if (rs.next()) {
             long id = rs.getLong(1);
             Field[] declaredFields = item.getClass().getDeclaredFields();
-            for (Field field : declaredFields
-            ) {
+            for (Field field : declaredFields) {
                 if (field.isAnnotationPresent(AutoIncrementedId.class)) {
                     field.setAccessible(true);
-                    field.set(item, id+1);
+                    field.set(item, id + 1);
                 }
-
             }
         }
         ConnectionController.disconnect();
