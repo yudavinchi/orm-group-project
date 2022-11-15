@@ -10,6 +10,5 @@
   "float": "FLOAT",
   "double": "DOUBLE",
   "class java.time.LocalDateTime": "DATETIME",
-  "char": "VARCHAR(1)",
-  "default": "TEXT(500)"
+  "char": "VARCHAR(1)"
 }

@@ -1,6 +1,7 @@
 package app.orm.utils;
 
 import java.util.Map;
+import java.util.spi.ToolProvider;
 
 public class TypeConverter {
 
@@ -19,7 +20,7 @@ public class TypeConverter {
     }
 
     public static String getType(String key) {
-        return typeMap.get(key);
+        String value = typeMap.get(key);
+        return (value == null)? "TEXT(500)" : value;
     }
-
 }
