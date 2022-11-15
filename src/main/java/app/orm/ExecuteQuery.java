@@ -2,6 +2,8 @@ package app.orm;
 
 import app.orm.annotations.AutoIncrementedId;
 import app.orm.annotations.UniqueValue;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import javax.persistence.Id;
@@ -22,6 +24,8 @@ import java.util.List;
 class ExecuteQuery {
 
     private static final TypeConverter typeConverter = TypeConverter.getInstance();
+    private static Logger logger = LogManager.getLogger(ExecuteQuery.class.getName());
+
 
     //========================== CREATE ==========================
     public static <T> void createTable(Class<T> clz) {
@@ -30,7 +34,8 @@ class ExecuteQuery {
             String createTableQuery = createTableQueryBuilderWithAnnotations(clz);
             statement.execute(createTableQuery);
             ConnectionController.disconnect();
-        } catch (InvalidAttributeValueException | IllegalAccessException | SQLException exception) {
+        } catch (SQLException exception) {
+            logger.error(exception.toString());
             System.out.println(exception);
         }
     }
@@ -46,10 +51,11 @@ class ExecuteQuery {
             ResultSet rs = statement.executeQuery(query.getQuery());
             results = getResults(rs, clz);
             ConnectionController.disconnect();
-        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException |
-                 SQLException exception) {
+        } catch (SQLException exception) {
+            logger.error(exception.toString());
             System.out.println(exception);
         }
+        logger.info("Successfully read All from class" + results.toString());
         return results;
     }
 
@@ -64,9 +70,10 @@ class ExecuteQuery {
             ConnectionController.disconnect();
         } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException |
                  SQLException exception) {
+            logger.error(exception.toString());
             System.out.println(exception);
         }
-
+        logger.info("Successfully read by id(int) from class" + result.toString());
         return result;
     }
 
@@ -80,10 +87,11 @@ class ExecuteQuery {
             Query query = new Query.Builder().select("*").from(table).where(property, value).build();
             ResultSet rs = statement.executeQuery(query.getQuery());
             results = getResults(rs, clz);
-        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException |
-                 SQLException exception) {
+        } catch (SQLException exception) {
+            logger.error(exception.toString());
             System.out.println(exception);
         }
+        logger.info("Successfully read by id(int) from class" + results.toString());
         return results;
     }
 
@@ -95,7 +103,8 @@ class ExecuteQuery {
             String addItemQuery = addItemQueryBuilderWithAnnotations(item);
             statement.execute(addItemQuery);
             ConnectionController.disconnect();
-        } catch (IllegalAccessException | SQLException exception) {
+        } catch (SQLException exception) {
+            logger.error(exception.toString());
             System.out.println(exception);
         }
     }
@@ -114,6 +123,7 @@ class ExecuteQuery {
             statement.executeUpdate(query.getQuery());
             ConnectionController.disconnect();
         } catch (SQLException exception) {
+            logger.error(exception.toString());
             System.out.println(exception);
         }
     }
@@ -152,6 +162,7 @@ class ExecuteQuery {
             ConnectionController.disconnect();
 
         } catch (IllegalAccessException | SQLException exception) {
+            logger.error(exception.toString());
             System.out.println(exception);
         }
     }
@@ -165,6 +176,7 @@ class ExecuteQuery {
             statement.execute(deleteByPropertyQuery);
             ConnectionController.disconnect();
         } catch (IllegalAccessException | SQLException | NoSuchFieldException exception) {
+            logger.error(exception.toString());
             System.out.println(exception);
         }
     }
@@ -175,6 +187,7 @@ class ExecuteQuery {
             statement.execute("DROP TABLE " + clz.getSimpleName().toLowerCase() + ";");
             ConnectionController.disconnect();
         } catch (SQLException exception) {
+            logger.error(exception.toString());
             System.out.println(exception);
         }
     }
@@ -192,8 +205,10 @@ class ExecuteQuery {
         }
         strQuery += " = " + "'" + value + "';";
         if (!foundProperty) {
+            logger.error("Successfully read by id(int) from class");
             throw new NoSuchFieldException("The input property doesn't exists in the table");
         }
+        logger.info("Successfully deleted item by property" + strQuery);
         return strQuery;
     }
 
@@ -217,22 +232,30 @@ class ExecuteQuery {
         return (results.size() == 0) ? null : results.get(0);
     }
 
-    private static <T> List<T> getResults(ResultSet rs, Class<T> clz) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException, SQLException {
+    private static <T> List<T> getResults(ResultSet rs, Class<T> clz){
+        try {
+            List<T> results = new ArrayList<>();
 
-        List<T> results = new ArrayList<>();
+            while (rs.next()) {
+                Constructor<T> constructor = clz.getConstructor();
+                T item = (T) constructor.newInstance();
+                Field[] declaredFields = clz.getDeclaredFields();
 
-        while (rs.next()) {
-            Constructor<T> constructor = clz.getConstructor();
-            T item = (T) constructor.newInstance();
-            Field[] declaredFields = clz.getDeclaredFields();
-
-            for (Field field : declaredFields) {
-                field.setAccessible(true);
-                field.set(item, rs.getObject(field.getName()));
+                for (Field field : declaredFields) {
+                    field.setAccessible(true);
+                    field.set(item, rs.getObject(field.getName()));
+                }
+                results.add(item);
             }
-            results.add(item);
+            logger.info("Successfully gets results : " + results);
+            return results;
         }
-        return results;
+        catch (IllegalAccessException | SQLException | InvocationTargetException | RuntimeException |
+               InstantiationException | NoSuchMethodException exception){
+            logger.error(exception.toString());
+            System.out.println(exception);
+        }
+       return null;
     }
 
     private static <T> String getTableName(Class<T> clz) {
@@ -241,63 +264,76 @@ class ExecuteQuery {
 
     //----------------------------------------------------------- COMPLICATED BUILDERS
 
-    public static <T> String createTableQueryBuilderWithAnnotations(Class<T> clz) throws IllegalAccessException, InvalidAttributeValueException {
-        String strQuery = "";
-        Field[] declaredFields = clz.getDeclaredFields();
-        int primaryKeys = 0;
-        for (Field field : declaredFields) {
-            if (field.isAnnotationPresent(AutoIncrementedId.class)) {
-                primaryKeys++;
-                strQuery += "id" + " " + TypeConverter.getType(field.getType().toString()) + " primary key AUTO_INCREMENT";
-            } else if (field.isAnnotationPresent(Id.class)) {
-                primaryKeys++;
-                strQuery += "id" + " " + TypeConverter.getType(field.getType().toString()) + " primary key UNIQUE NOT NULL";
-            } else {
-                strQuery += field.getName() + " " + TypeConverter.getType(field.getType().toString());
-            }
+    public static <T> String createTableQueryBuilderWithAnnotations(Class<T> clz){
+        try {
+            String strQuery = "";
+            Field[] declaredFields = clz.getDeclaredFields();
+            int primaryKeys = 0;
+            for (Field field : declaredFields) {
+                if (field.isAnnotationPresent(AutoIncrementedId.class)) {
+                    primaryKeys++;
+                    strQuery += "id" + " " + TypeConverter.getType(field.getType().toString()) + " primary key AUTO_INCREMENT";
+                } else if (field.isAnnotationPresent(Id.class)) {
+                    primaryKeys++;
+                    strQuery += "id" + " " + TypeConverter.getType(field.getType().toString()) + " primary key UNIQUE NOT NULL";
+                } else {
+                    strQuery += field.getName() + " " + TypeConverter.getType(field.getType().toString());
+                }
 
-            if (field.isAnnotationPresent(UniqueValue.class)) {// UNIQUE
-                strQuery += " UNIQUE";
-            }
-            if (field.isAnnotationPresent(NotNull.class) && !field.isAnnotationPresent(Id.class)) {// NOT NULL annotation for not id fields
-                strQuery += " NOT NULL";
-            }
-            strQuery += ", ";
+                if (field.isAnnotationPresent(UniqueValue.class)) {// UNIQUE
+                    strQuery += " UNIQUE";
+                }
+                if (field.isAnnotationPresent(NotNull.class) && !field.isAnnotationPresent(Id.class)) {// NOT NULL annotation for not id fields
+                    strQuery += " NOT NULL";
+                }
+                strQuery += ", ";
 
-            if (primaryKeys > 1) {
-                throw new InvalidAttributeValueException("The class contains more then 2 @Ids");
+                if (primaryKeys > 1) {
+                    logger.error("The class contains more then 2 @Ids");
+                    throw new InvalidAttributeValueException("The class contains more then 2 @Ids");
+                }
             }
+            strQuery = strQuery.substring(0, strQuery.length() - 2);
+            return String.format("CREATE TABLE %s (%s);", clz.getSimpleName().toLowerCase(), strQuery);
+        }catch (InvalidAttributeValueException exception){
+            logger.error(exception.toString());
+            System.out.println(exception);
         }
-        strQuery = strQuery.substring(0, strQuery.length() - 2);
-        return String.format("CREATE TABLE %s (%s);", clz.getSimpleName().toLowerCase(), strQuery);
+        return null;
     }
 
 
-    private static <T> String addItemQueryBuilderWithAnnotations(T item) throws IllegalAccessException, SQLException {
-        List<String> columns = new ArrayList<>();
-        List<String> values = new ArrayList<>();
-        boolean neeToUpdateObjectId = false;
-        Field[] declaredFields = item.getClass().getDeclaredFields();
-        for (Field field : declaredFields
-        ) {
-            field.setAccessible(true);
-            if (field.isAnnotationPresent(AutoIncrementedId.class)) {
-                columns.add("id");
-                neeToUpdateObjectId = true;
-            } else {
-                columns.add(field.getName());
+    private static <T> String addItemQueryBuilderWithAnnotations(T item){
+        try {
+            List<String> columns = new ArrayList<>();
+            List<String> values = new ArrayList<>();
+            boolean neeToUpdateObjectId = false;
+            Field[] declaredFields = item.getClass().getDeclaredFields();
+            for (Field field : declaredFields
+            ) {
+                field.setAccessible(true);
+                if (field.isAnnotationPresent(AutoIncrementedId.class)) {
+                    columns.add("id");
+                    neeToUpdateObjectId = true;
+                } else {
+                    columns.add(field.getName());
+                }
+                if (needToConvertToJson(TypeConverter.getType(field.getType().toString()))) {
+                    values.add("'" + objectToJsonString(field.get(item)) + "'");
+                } else {
+                    values.add("'" + field.get(item) + "'");
+                }
             }
-            if (needToConvertToJson(TypeConverter.getType(field.getType().toString()))) {
-                values.add("'" + objectToJsonString(field.get(item)) + "'");
-            } else {
-                values.add("'" + field.get(item) + "'");
+            String query = String.format("INSERT INTO %s (%s) VALUES (%s);", item.getClass().getSimpleName().toLowerCase(), String.join(",", columns), String.join(",", values));
+            if (neeToUpdateObjectId) {
+                insertIdToItem(item, query);
             }
+            return String.format("INSERT INTO %s (%s) VALUES (%s);", item.getClass().getSimpleName().toLowerCase(), String.join(",", columns), String.join(",", values));
+        }catch (IllegalAccessException | SQLException exception){
+            logger.error(exception.toString());
+            System.out.println(exception);
         }
-        String query = String.format("INSERT INTO %s (%s) VALUES (%s);", item.getClass().getSimpleName().toLowerCase(), String.join(",", columns), String.join(",", values));
-        if (neeToUpdateObjectId) {
-            insertIdToItem(item, query);
-        }
-        return String.format("INSERT INTO %s (%s) VALUES (%s);", item.getClass().getSimpleName().toLowerCase(), String.join(",", columns), String.join(",", values));
+        return null;
     }
 
     private static <T> void insertIdToItem(T item, String query) throws SQLException, IllegalAccessException {
@@ -316,6 +352,7 @@ class ExecuteQuery {
             }
             ConnectionController.disconnect();
         } catch (IllegalAccessException | SQLException exception) {
+            logger.error(exception);
             System.out.println(exception);
         }
     }
