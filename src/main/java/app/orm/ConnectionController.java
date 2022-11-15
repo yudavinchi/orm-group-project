@@ -1,14 +1,13 @@
-package app;
+package app.orm;
 
-import app.utils.File;
+import app.orm.utils.File;
 
-import java.io.FileNotFoundException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.HashMap;
 
-public class ConnectionController {
+class ConnectionController {
 
     private static final String url = "src/main/java/configurations/sql config.json";
     private static final HashMap<String, String> configurations = File.readJson(url);

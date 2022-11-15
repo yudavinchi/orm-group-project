@@ -1,4 +1,4 @@
-package app.entities;
+package app.orm.entities;
 
 public class Vehicle {
     String company;

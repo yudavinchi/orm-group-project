@@ -1,6 +1,6 @@
-package app.entities;
+package app.orm.entities;
 
-import org.jetbrains.annotations.NotNull;
+import app.orm.annotations.UniqueValue;
 
 public class Dog {
 

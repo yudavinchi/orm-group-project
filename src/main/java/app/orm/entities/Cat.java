@@ -1,4 +1,4 @@
-package app.entities;
+package app.orm.entities;
 
 import org.hibernate.annotations.GenericGenerator;
 import org.jetbrains.annotations.NotNull;

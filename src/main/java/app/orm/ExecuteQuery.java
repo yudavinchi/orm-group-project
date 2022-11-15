@@ -1,14 +1,12 @@
-package app;
+package app.orm;
 
-import app.entities.AutoIncrementedId;
-import app.entities.UniqueValue;
-import app.utils.Query;
+import app.orm.annotations.AutoIncrementedId;
+import app.orm.annotations.UniqueValue;
 import com.google.gson.Gson;
 import org.jetbrains.annotations.NotNull;
 
 import javax.management.InvalidAttributeValueException;
 import javax.persistence.Id;
-import java.io.FileNotFoundException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.sql.*;
@@ -421,12 +419,12 @@ public class ExecuteQuery {
         String query = String.format("INSERT INTO %s (%s) VALUES (%s);", item.getClass().getSimpleName().toLowerCase(), String.join(",", columns), String.join(",", values));
         ;
         if (neeToUpdateObjectId) {
-            insertIdToItmed(item, query);
+            insertIdToItem(item, query);
         }
         return String.format("INSERT INTO %s (%s) VALUES (%s);", item.getClass().getSimpleName().toLowerCase(), String.join(",", columns), String.join(",", values));
     }
 
-    private static <T> void insertIdToItmed(T item, String query) throws SQLException, IllegalAccessException {
+    private static <T> void insertIdToItem(T item, String query) throws SQLException, IllegalAccessException {
         Statement statement = ConnectionController.connect().prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
         ResultSet rs = statement.executeQuery("SELECT MAX(id) FROM " + item.getClass().getSimpleName().toLowerCase() +";");
         if (rs.next()) {
@@ -443,5 +441,4 @@ public class ExecuteQuery {
         }
         ConnectionController.disconnect();
     }
-
 }

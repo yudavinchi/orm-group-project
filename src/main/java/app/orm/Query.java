@@ -1,9 +1,8 @@
-package app.utils;
+package app.orm;
 
-import java.lang.ref.PhantomReference;
 import java.util.List;
 
-public class Query {
+class Query {
     private final String query;
 
     public static class Builder {

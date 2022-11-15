@@ -3,6 +3,8 @@
   "class java.lang.Byte": "BINARY",
   "class java.lang.Short": "SMALLINT",
   "int": "INTEGER",
+  "class java.lang.Integer": "INTEGER",
+  "class java.lang.Long": "BIGINT",
   "class java.lang.String": "VARCHAR(256)",
   "long": "BIGINT",
   "float": "FLOAT",

@@ -1,7 +1,8 @@
-package app.entities;
+package app.orm.entities;
+
+import app.orm.entities.Dog;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 
 public class TypeCheckClass {
 

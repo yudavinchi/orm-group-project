@@ -1,4 +1,4 @@
-package app;
+package app.orm;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +27,7 @@ public class Repository<T> {
     }
 
     public T readById(int id) {
+
         return ExecuteQuery.readById(id, clz);
     }
 

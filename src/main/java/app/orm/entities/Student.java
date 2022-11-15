@@ -1,4 +1,6 @@
-package app.entities;
+package app.orm.entities;
+
+import app.orm.annotations.AutoIncrementedId;
 
 import javax.persistence.Entity;
 
