@@ -21,7 +21,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ExecuteQuery {
+class ExecuteQuery {
 
     private static final TypeConverter typeConverter = TypeConverter.getInstance();
     private static Logger logger = LogManager.getLogger(ExecuteQuery.class.getName());
